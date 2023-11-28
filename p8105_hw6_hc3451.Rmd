@@ -21,7 +21,7 @@ library(purrr)
 
 # Problem 2
 ## Load Data
-```{r}
+```{r, warning = FALSE}
 weather_df = 
   rnoaa::meteo_pull_monitors(
     c("USW00094728"),
@@ -33,10 +33,12 @@ weather_df =
     tmin = tmin / 10,
     tmax = tmax / 10) |>
   dplyr::select(name, id, everything())
+
+head(weather_df)
 ```
 
 ## Bootstrap
-```{r}
+```{r, warning = FALSE}
 result = weather_df |>
   modelr::bootstrap(n = 500) |>
   mutate(
@@ -58,7 +60,7 @@ head(result)
 ```
 
 ## Plot Distributions: r^2
-```{r}
+```{r, warning = FALSE}
 result |>
   ggplot(aes(x = r_squared)) +
   geom_histogram() +
@@ -69,7 +71,7 @@ result |>
 According to the graph, we find that the estimates for r\^2 are around 0.92, which means that `tmin` and `prcp` are good predictors of `tmax`.
 
 ## Plot Distributions: log(beta_1 * beta_2)
-```{r}
+```{r, warning = FALSE}
 result |>
   ggplot(aes(x = log_beta1_2)) +
   geom_histogram() +
@@ -158,9 +160,6 @@ cv =
          rmse_fit_2 = map2_dbl(map(train,~model_2),
                                test, ~rmse(model = .x,data = .y))
   )
-
-head(cv)
-
 cv |>
   dplyr::select(starts_with("rmse")) |>
   pivot_longer(
