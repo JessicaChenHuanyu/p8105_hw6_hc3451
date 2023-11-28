@@ -7,10 +7,10 @@ output: github_document
 
 ```{r, include=FALSE}
 library(tidyverse)
-library(purrr)
-library(ggplot2)
 library(MASS)
+library(ggplot2)
 library(modelr)
+library(purrr)
 ```
 
 # Problem 1
@@ -92,6 +92,84 @@ log_beta12_ci
 
 # Problem 3
 
+## Load and Clean Data
 ```{r}
+birthweight = read.csv("./birthweight.csv")
 
+birthweight <- birthweight |>
+  janitor::clean_names() |>
+  na.omit() |>
+  mutate(babysex = case_when(babysex == 1 ~ 'male',
+                             babysex == 2 ~ 'female'),
+         frace = case_when(frace == 1 ~ "White",
+                        frace == 2 ~ "Black",
+                        frace == 3 ~ "Asian",
+                        frace == 4 ~ "Puerto Rican",
+                        frace == 8 ~ "Other",
+                        frace == 9 ~ "Unknown"),
+         malform = case_when(malform == 0 ~ 'absent',
+                             malform == 1 ~ 'present'),
+         mrace = case_when(mrace == 1 ~ "White",
+                        mrace == 2 ~ "Black",
+                        mrace == 3 ~ "Asian",
+                        mrace == 4 ~ "Puerto Rican",
+                        mrace == 8 ~ "Other")
+         )
+head(birthweight)
 ```
+
+## Regression Model
+The following code attempts to use backward stepwise regression.
+```{r}
+full_model = lm(bwt ~ ., data = birthweight) |>
+  step(direction = "backward", trace = FALSE)
+
+summary(full_model)
+```
+
+## Plot Residuals Against Fitted Values
+```{r}
+birthweight |>
+    add_predictions(full_model) |>
+    add_residuals(full_model) |>
+    ggplot(aes(x = pred, y = resid)) +
+    geom_point()  + 
+    geom_smooth(method = "lm") + 
+    labs(title = "Residuals Against Fitted Values", 
+       x = "Fitted Values", 
+       y = "Residuals")
+```
+
+# Compare Models
+```{r}
+model_1 = lm(bwt ~ blength + gaweeks, data = birthweight)
+summary(model_1)
+model_2 = lm(bwt ~ bhead * blength * babysex, data = birthweight)
+summary(model_2)
+```
+
+```{r}
+cv =
+  crossv_mc(birthweight, 100) |>
+  mutate(rmse_fit_full = map2_dbl(map(train,~full_model),
+                                  test, ~rmse(model = .x,data = .y)),
+         rmse_fit_1 = map2_dbl(map(train,~model_1),
+                               test, ~rmse(model = .x,data = .y)),
+         rmse_fit_2 = map2_dbl(map(train,~model_2),
+                               test, ~rmse(model = .x,data = .y))
+  )
+
+head(cv)
+
+cv |>
+  dplyr::select(starts_with("rmse")) |>
+  pivot_longer(
+    everything(),
+    names_to = "model", 
+    values_to = "rmse",
+    names_prefix = "rmse_") |>
+  ggplot(aes(x = model, y = rmse)) + 
+  geom_violin()
+```
+
+Therefore, we know that the 11-variable backward stepwise regression model has the smallest RMSE, indicating that the predictions in this model are closer to the actual values than the other two.
