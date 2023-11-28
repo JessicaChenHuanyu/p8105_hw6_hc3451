@@ -52,8 +52,7 @@ result = weather_df |>
     beta_1 = tmin,
     beta_2 = prcp) |>
   summarise(r_squared = r.squared,
-            log_beta1_2 = log(beta_1*beta_2),
-            log_beta0_1 = log(beta_0*beta_1))
+            log_beta1_2 = log(beta_1*beta_2))
   
 head(result)
 ```
@@ -86,9 +85,9 @@ r2_ci = quantile(pull(result, r_squared),
                  probs = c(0.025,0.975))
 r2_ci
 
-log_beta01_ci = quantile(pull(result, log_beta0_1),
-                         probs = c(0.025,0.975))
-log_beta01_ci
+log_beta12_ci = quantile(pull(result, log_beta1_2),
+                         probs = c(0.025,0.975), na.rm = TRUE)
+log_beta12_ci
 ```
 
 # Problem 3
