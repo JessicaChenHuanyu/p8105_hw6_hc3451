@@ -222,7 +222,7 @@ birthweight |>
        y = "Residuals")
 ```
 
-# Compare Models
+## Compare Models
 ```{r}
 model_1 = lm(bwt ~ blength + gaweeks, data = birthweight)
 summary(model_1)
