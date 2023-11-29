@@ -14,10 +14,89 @@ library(purrr)
 ```
 
 # Problem 1
+## Load and Clean Data
+```{r, warning=FALSE}
+homicide = read_csv("./homicide-data.csv")
 
-```{r}
-
+homicide = homicide |>
+  mutate(city_state = paste0(city,", ",state),
+         solved = ifelse(disposition == "Closed by arrest",1,0)) |>
+  filter(!city_state %in% c("Dallas, TX", "Phoenix, AZ", "Kansas City, MO",
+                            "Tulsa, AL")) |>
+  filter(victim_race %in% c("White", "Black")) |>
+  mutate(victim_age = as.numeric(victim_age))
 ```
+
+## Baltimore
+### Logistic Regression
+```{r}
+baltimore = homicide |>
+  filter(city == "Baltimore")
+
+model_baltimore = glm(solved ~ victim_age + victim_race + victim_sex,
+                      data = baltimore, family = binomial())
+
+model <- model_baltimore |>
+  broom::tidy() |>
+  knitr::kable(digits = 3)
+
+model
+save(model, file = "./Baltimore Logistic Regression.RData")
+```
+
+### Odds Ratio
+```{r}
+odd_ratio = model_baltimore |>
+  broom::tidy() |>
+  filter(term == 'victim_sexMale') |>
+  summarise(estimate = estimate,
+            odd_ratio = exp(estimate),
+            odd_ratio_lower = exp(estimate - 1.96 * std.error),
+            odd_ratio_upper = exp(estimate + 1.96 * std.error)
+         ) |>
+  knitr::kable(digits = 3)
+odd_ratio
+```
+
+## Other Cities
+```{r}
+city_or_function <- function(citystate) {
+  city_glm_or <- homicide %>%
+    filter(city_state == citystate) %>%
+    glm(solved ~ victim_sex + victim_race + victim_age, 
+        family = binomial(), data = .) %>%
+    broom::tidy() %>%
+    filter(term == "victim_sexMale") %>%
+    summarise(estimate = estimate,
+              odd_ratio = exp(estimate),
+              odd_ratio_lower = exp(estimate - 1.96 * std.error),
+              odd_ratio_upper = exp(estimate + 1.96 * std.error)
+    )
+  
+  return(city_glm_or)
+}
+
+result <- homicide %>%
+  distinct(city_state) %>%
+  pull(city_state) %>%
+  map_df(city_or_function, .id = "city_state")
+
+result %>%
+  knitr::kable(digits = 3)
+```
+
+## Plot
+```{r}
+ggplot(result, aes(x = reorder(city_state, odd_ratio),
+                          y = odd_ratio, fill = city_state)) +
+  geom_point(aes(y = odd_ratio)) +
+  geom_errorbar(aes(ymin = odd_ratio_lower, ymax = odd_ratio_upper)) +
+  labs(title = "Estimated Odds Ratios and Confidence Intervals for Each City",
+       x = "City", y = "Estimated Odds Ratio") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill = FALSE)
+```
+Therefore, we can get New York (city 30) has the lowest odds ratio between gender, while Albuquerque (city 1) has the highest odds ratio between gender.
 
 # Problem 2
 ## Load Data
@@ -40,7 +119,7 @@ head(weather_df)
 ## Bootstrap
 ```{r, warning = FALSE}
 result = weather_df |>
-  modelr::bootstrap(n = 500) |>
+  modelr::bootstrap(n = 5000) |>
   mutate(
     weather_lm = map(strap, ~lm(tmax ~ tmin + prcp, data = .x)),
     weather_lm_r2 = map(weather_lm, broom::tidy),
