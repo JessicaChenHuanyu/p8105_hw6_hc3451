@@ -96,6 +96,7 @@ ggplot(result, aes(x = reorder(city_state, odd_ratio),
   theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
   guides(fill = FALSE)
 ```
+
 Therefore, we can get New York (city 30) has the lowest odds ratio between gender, while Albuquerque (city 1) has the highest odds ratio between gender.
 
 # Problem 2
