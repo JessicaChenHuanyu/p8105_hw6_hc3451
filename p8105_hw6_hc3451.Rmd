@@ -14,7 +14,9 @@ library(purrr)
 ```
 
 # Problem 1
+
 ## Load and Clean Data
+
 ```{r, warning=FALSE}
 homicide = read_csv("./homicide-data.csv")
 
@@ -28,7 +30,9 @@ homicide = homicide |>
 ```
 
 ## Baltimore
+
 ### Logistic Regression
+
 ```{r}
 baltimore = homicide |>
   filter(city == "Baltimore")
@@ -45,6 +49,7 @@ save(model, file = "./Baltimore Logistic Regression.RData")
 ```
 
 ### Odds Ratio
+
 ```{r}
 odd_ratio = model_baltimore |>
   broom::tidy() |>
@@ -59,6 +64,7 @@ odd_ratio
 ```
 
 ## Other Cities
+
 ```{r}
 city_or_function <- function(citystate) {
   city_glm_or <- homicide %>%
@@ -86,6 +92,7 @@ result %>%
 ```
 
 ## Plot
+
 ```{r}
 ggplot(result, aes(x = reorder(city_state, odd_ratio),
                           y = odd_ratio, fill = city_state)) +
@@ -100,7 +107,9 @@ ggplot(result, aes(x = reorder(city_state, odd_ratio),
 Therefore, we can get New York (city 30) has the lowest odds ratio between gender, while Albuquerque (city 1) has the highest odds ratio between gender.
 
 # Problem 2
+
 ## Load Data
+
 ```{r, warning = FALSE}
 weather_df = 
   rnoaa::meteo_pull_monitors(
@@ -118,6 +127,7 @@ head(weather_df)
 ```
 
 ## Bootstrap
+
 ```{r, warning = FALSE}
 result = weather_df |>
   modelr::bootstrap(n = 5000) |>
@@ -134,12 +144,21 @@ result = weather_df |>
     beta_1 = tmin,
     beta_2 = prcp) |>
   summarise(r_squared = r.squared,
-            log_beta1_2 = log(beta_1*beta_2))
+            log_beta1_2 = log(beta_1*beta_2)
+            )
   
 head(result)
 ```
 
-## Plot Distributions: r^2
+```{r}
+result %>%
+  summarise(ratio = sum(is.na(log_beta1_2)) / 5000) %>%
+  mutate(ratio_text = paste0("Therefore, we note that there are ", round(ratio * 100, 2), "% of data that are NaN after transformation of log.")) %>%
+  pull(ratio_text)
+```
+
+## Plot Distributions: r\^2
+
 ```{r, warning = FALSE}
 result |>
   ggplot(aes(x = r_squared)) +
@@ -150,7 +169,8 @@ result |>
 
 According to the graph, we find that the estimates for r\^2 are around 0.92, which means that `tmin` and `prcp` are good predictors of `tmax`.
 
-## Plot Distributions: log(beta_1 * beta_2)
+## Plot Distributions: log(beta_1 \* beta_2)
+
 ```{r, warning = FALSE}
 result |>
   ggplot(aes(x = log_beta1_2)) +
@@ -162,6 +182,7 @@ result |>
 According to the graph, we find that the estimates for log(beta_1 \* beta_2) are left skewed, with most frequencies around -6.
 
 ## 95% Confidence Interval
+
 ```{r}
 r2_ci = quantile(pull(result, r_squared),
                  probs = c(0.025,0.975))
@@ -175,6 +196,7 @@ log_beta12_ci
 # Problem 3
 
 ## Load and Clean Data
+
 ```{r}
 birthweight = read.csv("./birthweight.csv")
 
@@ -201,7 +223,9 @@ head(birthweight)
 ```
 
 ## Regression Model
+
 The following code attempts to use backward stepwise regression.
+
 ```{r}
 full_model = lm(bwt ~ ., data = birthweight) |>
   step(direction = "backward", trace = FALSE)
@@ -210,6 +234,7 @@ summary(full_model)
 ```
 
 ## Plot Residuals Against Fitted Values
+
 ```{r}
 birthweight |>
     add_predictions(full_model) |>
@@ -223,6 +248,7 @@ birthweight |>
 ```
 
 ## Compare Models
+
 ```{r}
 model_1 = lm(bwt ~ blength + gaweeks, data = birthweight)
 summary(model_1)
